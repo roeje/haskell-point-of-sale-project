@@ -1,7 +1,6 @@
 import Data.Time.Clock
 import Data.Time.Calendar
---import Data.Decimal
-
+import Numeric
 
 taxRate :: Float
 taxRate = 0.065
@@ -11,37 +10,29 @@ digitize 0 = []
 digitize x = digitize (x `div` 10) ++ [x `mod` 10]
 
 cardType :: Integer -> String
+cardType 0 = "Not Accepted"
 cardType x | head (digitize x) == 4 = "Visa"
 		   | head (digitize x) == 5 = "MasterCard"
 		   | head (digitize x) == 6 = "Discover"
 		   | otherwise = "Not Accepted"
 
---cDateTup = getCurrentTime >>= return.toGregorian.utctDay
---cDateTup2 <- fmap utctDay getCurrentTime
---cDateTup2 = fmap utctDay getCurrentTime
-
 pastDate :: Integer -> Int -> Int -> IO Bool
-pastDate x y z = do 
-	dOne <- fmap utctDay getCurrentTime
-	return((fromGregorian x y z) < dOne)
+pastDate y m d = do 
+	currDate <- fmap utctDay getCurrentTime
+	return((fromGregorian y m d) < currDate)
 
---calcTax :: Float -> Float
---calcTax x = do
---	d1 <- x * 0.1
---	return fmap (roundTo 2) d1 
-
---calcTax :: Float -> Float
---calcTax x = do
---	d1 <- x * 0.1
---	return d1
+--Rounds input to 2 decimal places by using ShowFFloat (output is a string). 
+--That string is then coverted back to a float using read :: Float.
+roundTo :: Float -> Float
+roundTo inputVal = read (showFFloat (Just 2) inputVal "") :: Float
 
 calcTax :: Float -> Float
-calcTax x = x * taxRate
+calcTax x = roundTo (x * taxRate)
 
 verifyCard :: Integer -> Integer -> Int -> Int -> IO Bool
-verifyCard cNum y m d = do
-	d1 <- pastDate y m d
-	return (((cardType cNum) /= "Not Accepted") && not d1)
+verifyCard cardNum y m d = do
+	isPastDate <- pastDate y m d
+	return (((cardType cardNum) /= "Not Accepted") && not isPastDate)
 
 checkOut :: Float -> IO ()
 checkOut num = do
